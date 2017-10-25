@@ -1,0 +1,488 @@
+/**
+  ******************************************************************************
+  * @file    stm32l0xx_it.c
+  * @brief   Interrupt Service Routines.
+  ******************************************************************************
+  *
+  * COPYRIGHT(c) 2017 STMicroelectronics
+  *
+  * Redistribution and use in source and binary forms, with or without modification,
+  * are permitted provided that the following conditions are met:
+  *   1. Redistributions of source code must retain the above copyright notice,
+  *      this list of conditions and the following disclaimer.
+  *   2. Redistributions in binary form must reproduce the above copyright notice,
+  *      this list of conditions and the following disclaimer in the documentation
+  *      and/or other materials provided with the distribution.
+  *   3. Neither the name of STMicroelectronics nor the names of its contributors
+  *      may be used to endorse or promote products derived from this software
+  *      without specific prior written permission.
+  *
+  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  *
+  ******************************************************************************
+  */
+/* Includes ------------------------------------------------------------------*/
+#include "stm32l0xx_hal.h"
+#include "stm32l0xx.h"
+#include "stm32l0xx_it.h"
+
+/* USER CODE BEGIN 0 */
+#include "match_dsp.h"
+#include "math.h"
+
+#define	N	8
+
+// для 8 битного номера
+
+
+#define ALERT_H 85
+#define ALERT_L 170
+#define REBOOT	0
+
+#define CONST6kDEF (-0.010594604192000)
+
+#define CONSTraDEF (-0.110594849900000)
+
+
+int8_t  ret[4];
+extern uint32_t buff1;	// буфер
+
+static float retf11,retf12,retf21,retf22,retfl, buff0, buffl0,buff00;	// фильтры
+extern float ratio;
+uint16_t samplenum = 3200;
+
+
+static uint8_t /*bin = 0,*/ bin8[2], numbit = 0;//, str[8] = {0x00U,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0x0DU};	//modbus
+
+static uint16_t j, crc, bin;//,n = 0;
+extern uint16_t name;
+
+uint16_t bit_1 = 0;
+uint16_t bit_0 = 0;
+uint16_t bit_n = 0;
+
+uint32_t nn = 0;
+float tmp;
+float tmp1;
+
+float max;
+float min;
+
+
+_Bool frame = 0;
+_Bool pass = 0;
+_Bool det = 0;
+
+
+static uint8_t  nop = 0;
+
+uint8_t cnt, echo;
+extern uint16_t bb, f1, f2, BR;
+
+extern float coef11[];		
+extern float coef12[];		
+
+extern float coef21[];		
+extern float coef22[];
+
+extern float coefl[];
+
+
+const float coef719_1[] = {-0.31930648926751132,  0.99727198600603129, 0.069118341539523037,  -0.030159984550979461,   0.069118341539523037};
+const float coef719_2[] = {-0.31391267740209011,  0.99727078945024961, 0.014483053822428604,  -0.0028295846247246475,  0.014483053822428604};
+	
+const float coef781_1[] = {-0.077292613280225797, 0.99727152694092847, 0.069453393437029332,  -0.013635786632875516,    0.069453393437029332};
+const float coef781_2[] = {-0.071833716231854639, 0.99727124851500604, 0.014412510754072216,   0.00068539554318540984,  0.014412510754072216};
+	
+
+extern float ratio_f1;
+extern float ratio_f2;
+
+extern float history11[], history12[], history21[], history22[], historyl[];
+extern uint8_t str_rx[8];
+
+rxData_t rxDATA;
+txData_t txDATA;
+
+/* USER CODE END 0 */
+
+/* External variables --------------------------------------------------------*/
+extern DMA_HandleTypeDef hdma_adc;
+extern ADC_HandleTypeDef hadc;
+extern DMA_HandleTypeDef hdma_tim2_ch1;
+extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim21;
+extern DMA_HandleTypeDef hdma_usart2_tx;
+extern DMA_HandleTypeDef hdma_usart2_rx;
+extern UART_HandleTypeDef huart2;
+
+/******************************************************************************/
+/*            Cortex-M0+ Processor Interruption and Exception Handlers         */ 
+/******************************************************************************/
+
+/**
+* @brief This function handles Non maskable interrupt.
+*/
+void NMI_Handler(void)
+{
+  /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
+
+  /* USER CODE END NonMaskableInt_IRQn 0 */
+  /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
+
+  /* USER CODE END NonMaskableInt_IRQn 1 */
+}
+
+/**
+* @brief This function handles Hard fault interrupt.
+*/
+void HardFault_Handler(void)
+{
+  /* USER CODE BEGIN HardFault_IRQn 0 */
+
+  /* USER CODE END HardFault_IRQn 0 */
+  while (1)
+  {
+  }
+  /* USER CODE BEGIN HardFault_IRQn 1 */
+
+  /* USER CODE END HardFault_IRQn 1 */
+}
+
+/**
+* @brief This function handles System service call via SWI instruction.
+*/
+void SVC_Handler(void)
+{
+  /* USER CODE BEGIN SVC_IRQn 0 */
+
+  /* USER CODE END SVC_IRQn 0 */
+  /* USER CODE BEGIN SVC_IRQn 1 */
+
+  /* USER CODE END SVC_IRQn 1 */
+}
+
+/**
+* @brief This function handles Pendable request for system service.
+*/
+void PendSV_Handler(void)
+{
+  /* USER CODE BEGIN PendSV_IRQn 0 */
+
+  /* USER CODE END PendSV_IRQn 0 */
+  /* USER CODE BEGIN PendSV_IRQn 1 */
+
+  /* USER CODE END PendSV_IRQn 1 */
+}
+
+/**
+* @brief This function handles System tick timer.
+*/
+void SysTick_Handler(void)
+{
+  /* USER CODE BEGIN SysTick_IRQn 0 */
+
+  /* USER CODE END SysTick_IRQn 0 */
+  HAL_IncTick();
+  HAL_SYSTICK_IRQHandler();
+  /* USER CODE BEGIN SysTick_IRQn 1 */
+
+  /* USER CODE END SysTick_IRQn 1 */
+}
+
+/******************************************************************************/
+/* STM32L0xx Peripheral Interrupt Handlers                                    */
+/* Add here the Interrupt Handlers for the used peripherals.                  */
+/* For the available peripheral interrupt handler names,                      */
+/* please refer to the startup file (startup_stm32l0xx.s).                    */
+/******************************************************************************/
+
+/**
+* @brief This function handles DMA1 channel 1 interrupt.
+*/
+void DMA1_Channel1_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
+
+  /* USER CODE END DMA1_Channel1_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_adc);
+  /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
+
+  /* USER CODE END DMA1_Channel1_IRQn 1 */
+}
+
+/**
+* @brief This function handles DMA1 channel 2 and channel 3 interrupts.
+*/
+void DMA1_Channel2_3_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Channel2_3_IRQn 0 */
+	
+  /* USER CODE END DMA1_Channel2_3_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_usart2_tx);
+  HAL_DMA_IRQHandler(&hdma_usart2_rx);
+  /* USER CODE BEGIN DMA1_Channel2_3_IRQn 1 */
+
+  /* USER CODE END DMA1_Channel2_3_IRQn 1 */
+}
+
+/**
+* @brief This function handles DMA1 channel 4, channel 5, channel 6 and channel 7 interrupts.
+*/
+void DMA1_Channel4_5_6_7_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Channel4_5_6_7_IRQn 0 */
+	//if(ht == 1)
+	if(__HAL_DMA_GET_FLAG(&hdma_tim2_ch1, __HAL_DMA_GET_TC_FLAG_INDEX(&hdma_tim2_ch1)) != RESET)
+	{
+		HAL_TIM_PWM_Stop_DMA(&htim2,TIM_CHANNEL_1);
+		HAL_GPIO_WritePin(Interrupt_OUT_GPIO_Port,Interrupt_OUT_Pin, GPIO_PIN_RESET);
+	}
+  /* USER CODE END DMA1_Channel4_5_6_7_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_tim2_ch1);
+  /* USER CODE BEGIN DMA1_Channel4_5_6_7_IRQn 1 */
+	
+  /* USER CODE END DMA1_Channel4_5_6_7_IRQn 1 */
+}
+
+/**
+* @brief This function handles ADC1, COMP1 and COMP2 interrupts (COMP interrupts through EXTI lines 21 and 22).
+*/
+void ADC1_COMP_IRQHandler(void)
+{
+  /* USER CODE BEGIN ADC1_COMP_IRQn 0 */
+
+  /* USER CODE END ADC1_COMP_IRQn 0 */
+  HAL_ADC_IRQHandler(&hadc);
+  /* USER CODE BEGIN ADC1_COMP_IRQn 1 */
+
+  /* USER CODE END ADC1_COMP_IRQn 1 */
+}
+
+/**
+* @brief This function handles TIM2 global interrupt.
+*/
+void TIM2_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM2_IRQn 0 */
+
+  /* USER CODE END TIM2_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim2);
+  /* USER CODE BEGIN TIM2_IRQn 1 */
+
+  /* USER CODE END TIM2_IRQn 1 */
+}
+
+/**
+* @brief This function handles TIM21 global interrupt.
+*/
+void TIM21_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM21_IRQn 0 */
+	HAL_GPIO_WritePin(Interrupt_OUT_GPIO_Port,Interrupt_OUT_Pin, GPIO_PIN_RESET);
+
+	//buff00 = 0;	
+	//for(n = 0; n < 1; n++)
+	//	{
+	//		buff00+=(((float)buff1[n])/1);
+	//	}
+	buff00 = (float)buff1;
+	buff0 = 3*(buff00)/65520; //65535;							// ?????? ? ?????? 
+	//retf11 = iir_test(buff0,coef1,history11);			//f1
+		//retf12 = iir_test(retf11,coef1,history12);
+	
+	//retf21 = iir_test(buff0,coef2,history21);			//f2
+		//retf22 = iir_test(retf21,coef2,history22);
+	
+	// cheby 2
+	retf11 = iir_test(buff0,coef11,history11);			//f1
+		retf12 = iir_test(retf11,coef12,history12);
+	
+	retf21 = iir_test(buff0,coef21,history21);			//f2
+		retf22 = iir_test(retf21,coef22,history22);
+	
+		buffl0 = (retf12*retf12)-(retf22*retf22);
+	//buffl0 = (retf11*retf11)-(retf21*retf21);
+		retfl  = iir_test(buffl0,coefl,historyl);//-CONST6kNEW;//-CONST6kDEF;
+	
+	/*
+		if(nn<0xFFFFF)
+	{
+		tmp = tmp + (retfl);
+		nn++;
+		tmp1 = (tmp)/nn;
+	}
+	
+		//echo = (retfl/256);
+		HAL_UART_Transmit_DMA(&huart2,(uint8_t *)&retfl,sizeof(&retfl));*/
+		
+	if(!det)
+  {
+		if ((retfl>=ratio_f1)||(retfl<=-ratio_f2))
+			{
+				j=0;
+        det=1;
+				max = 0;
+				min = 0;
+      }
+  }
+  else
+	{
+		if(j < samplenum)
+    {
+			if(retfl>=ratio_f1)
+				bit_1++;
+			if(retfl<=-ratio_f2)
+				bit_0++;
+			if((retfl<ratio_f1)&&(retfl>-ratio_f2))
+				bit_n++;
+			if(retfl>=max)
+				max = retfl;
+			if(retfl<=min)
+				min = retfl;
+    }
+    if(j==samplenum)
+		{
+			if(numbit < N)
+			{	
+				if((bit_1 > bit_0)&&(bit_1 > bit_n)&&(bit_1 > (samplenum/2)))
+					{
+						bin = bin<<1;
+						bin = bin|1;
+						numbit++;
+					}
+				if((bit_0 > bit_1)&&(bit_0 > bit_n)&&(bit_0 > (samplenum/2)))
+					{
+						bin = bin<<1;
+						bin = bin|0;
+						numbit++;
+					}
+				if((bit_n > bit_0)&&(bit_n > bit_0))
+					{
+						nop++;
+						if((nop <= 0)&&(bit_n < (samplenum/2)))
+							{
+								bin = bin<<1;
+								bin = bin|0;
+								numbit++;
+								
+							}
+						else
+							{
+								bit_1 = 0;
+								bit_0 = 0;
+								bit_n = 0;
+								nop = 0;
+								det=0;
+								j=0;
+								bin=0;
+								numbit = 0;
+							}
+						
+				}
+					
+					
+			}
+			
+			bit_1 = 0;
+			bit_0 = 0;
+			bit_n = 0;
+			j=0;
+			
+		}
+  }
+  j++;
+	
+	if( numbit == N )
+	{
+		
+		bin8[0] = bin >> 8;
+		bin8[1] = bin;
+		
+		
+		if(bin == name)
+			txDATA.det = 1;
+		else
+			txDATA.det = 0;
+		
+		ret[0] = txDATA.det;
+		ret[1] = 0;
+		ret[2] = bin8[0];
+		ret[3] = bin8[1];
+		crc = crc_calculating((uint8_t *)ret,4);		
+		
+		txDATA.name = bin;
+		txDATA.crc = crc;
+		HAL_UART_Transmit_DMA(&huart2,(uint8_t *)&txDATA,sizeof(txDATA));
+
+		if(bin == name)
+			blink(PERSONAL);
+		if((bin == ALERT_H)||(bin == ALERT_L))
+			blink(ALARM);
+		if(bin == REBOOT)
+			SCB->AIRCR = 0x05FA0004;
+		
+		det=0;
+		bin=0;
+		numbit = 0;
+	}
+	HAL_GPIO_WritePin(Interrupt_OUT_GPIO_Port,Interrupt_OUT_Pin, GPIO_PIN_SET);
+  /* USER CODE END TIM21_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim21);
+  /* USER CODE BEGIN TIM21_IRQn 1 */
+
+  /* USER CODE END TIM21_IRQn 1 */
+}
+
+/**
+* @brief This function handles USART2 global interrupt / USART2 wake-up interrupt through EXTI line 26.
+*/
+void USART2_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART2_IRQn 0 */
+	
+  /* USER CODE END USART2_IRQn 0 */
+  HAL_UART_IRQHandler(&huart2);
+	/* USER CODE BEGIN USART2_IRQn 1 */
+  /*if(huart2.RxXferCount<8)
+	{
+		HAL_TIM_Base_Stop_IT(&htim21);	
+	}
+	if(huart2.RxXferCount==0)
+	{
+		if((str_rx[0] != 0)&&(str_rx[1] != 0))
+			name = str_rx[0] << 8 | str_rx[1];
+		if((str_rx[2] != 0)&&(str_rx[3] != 0))
+			f1 = str_rx[2] << 8 | str_rx[3];
+		if((str_rx[4] != 0)&&(str_rx[5] != 0))
+			f2 = str_rx[4] << 8 | str_rx[5];
+		if(str_rx[6] != 0)
+			BR = str_rx[6];
+		
+		SetCoefficiens(f1,f2,BR);
+		SaveSetting();
+		
+		if(str_rx[7] == 0)
+			SCB->AIRCR = 0x05FA0004;
+		
+		//blink(START);
+		
+		HAL_UART_Receive_IT(&huart2, &str_rx[0],8);
+		HAL_TIM_Base_Start_IT(&htim21);	
+	}*/
+  /* USER CODE END USART2_IRQn 1 */
+}
+
+/* USER CODE BEGIN 1 */
+
+/* USER CODE END 1 */
+/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

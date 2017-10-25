@@ -1,0 +1,428 @@
+
+#include	"stm32l0xx_hal.h"
+//#include	"math.h"
+#include	"match_dsp.h"
+
+
+
+/* Table of CRC values for high–order byte */
+    const static unsigned char auchCRCHi[] = {
+    0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81,
+    0x40, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0,
+    0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01,
+    0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41,
+    0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81,
+    0x40, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0,
+    0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01,
+    0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40,
+    0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81,
+    0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0,
+    0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01,
+    0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
+    0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81,
+    0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0,
+    0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01,
+    0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41,
+    0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, 0x81,
+    0x40
+    };
+    /* Table of CRC values for low–order byte */
+    const static char auchCRCLo[] = {
+    0x00, 0xC0, 0xC1, 0x01, 0xC3, 0x03, 0x02, 0xC2, 0xC6, 0x06, 0x07, 0xC7, 0x05, 0xC5, 0xC4,
+    0x04, 0xCC, 0x0C, 0x0D, 0xCD, 0x0F, 0xCF, 0xCE, 0x0E, 0x0A, 0xCA, 0xCB, 0x0B, 0xC9, 0x09,
+    0x08, 0xC8, 0xD8, 0x18, 0x19, 0xD9, 0x1B, 0xDB, 0xDA, 0x1A, 0x1E, 0xDE, 0xDF, 0x1F, 0xDD,
+    0x1D, 0x1C, 0xDC, 0x14, 0xD4, 0xD5, 0x15, 0xD7, 0x17, 0x16, 0xD6, 0xD2, 0x12, 0x13, 0xD3,
+    0x11, 0xD1, 0xD0, 0x10, 0xF0, 0x30, 0x31, 0xF1, 0x33, 0xF3, 0xF2, 0x32, 0x36, 0xF6, 0xF7,
+    0x37, 0xF5, 0x35, 0x34, 0xF4, 0x3C, 0xFC, 0xFD, 0x3D, 0xFF, 0x3F, 0x3E, 0xFE, 0xFA, 0x3A,
+    0x3B, 0xFB, 0x39, 0xF9, 0xF8, 0x38, 0x28, 0xE8, 0xE9, 0x29, 0xEB, 0x2B, 0x2A, 0xEA, 0xEE,
+    0x2E, 0x2F, 0xEF, 0x2D, 0xED, 0xEC, 0x2C, 0xE4, 0x24, 0x25, 0xE5, 0x27, 0xE7, 0xE6, 0x26,
+    0x22, 0xE2, 0xE3, 0x23, 0xE1, 0x21, 0x20, 0xE0, 0xA0, 0x60, 0x61, 0xA1, 0x63, 0xA3, 0xA2,
+    0x62, 0x66, 0xA6, 0xA7, 0x67, 0xA5, 0x65, 0x64, 0xA4, 0x6C, 0xAC, 0xAD, 0x6D, 0xAF, 0x6F,
+    0x6E, 0xAE, 0xAA, 0x6A, 0x6B, 0xAB, 0x69, 0xA9, 0xA8, 0x68, 0x78, 0xB8, 0xB9, 0x79, 0xBB,
+    0x7B, 0x7A, 0xBA, 0xBE, 0x7E, 0x7F, 0xBF, 0x7D, 0xBD, 0xBC, 0x7C, 0xB4, 0x74, 0x75, 0xB5,
+    0x77, 0xB7, 0xB6, 0x76, 0x72, 0xB2, 0xB3, 0x73, 0xB1, 0x71, 0x70, 0xB0, 0x50, 0x90, 0x91,
+    0x51, 0x93, 0x53, 0x52, 0x92, 0x96, 0x56, 0x57, 0x97, 0x55, 0x95, 0x94, 0x54, 0x9C, 0x5C,
+    0x5D, 0x9D, 0x5F, 0x9F, 0x9E, 0x5E, 0x5A, 0x9A, 0x9B, 0x5B, 0x99, 0x59, 0x58, 0x98, 0x88,
+    0x48, 0x49, 0x89, 0x4B, 0x8B, 0x8A, 0x4A, 0x4E, 0x8E, 0x8F, 0x4F, 0x8D, 0x4D, 0x4C, 0x8C,
+    0x44, 0x84, 0x85, 0x45, 0x87, 0x47, 0x46, 0x86, 0x82, 0x42, 0x43, 0x83, 0x41, 0x81, 0x80,
+    0x40
+    };
+
+		
+		
+
+
+float history11[] = {0,0},history12[] = {0,0},history21[] = {0,0},history22[] = {0,0},historyl[] = {0,0};
+
+const uint16_t freq[] = {719, 769, 781, 790, 810, 919, 981, 997};			// сетка частот
+
+
+const float coeff5[][5] =            // coef , BR = 0.5
+													{{-0.31795329, 0.99863555, 0.06919350, -0.02607389, 0.06919350},      /*  719.000000 Hz section one*/
+													{ -0.00372486, 0.01453745, 0.01453745, -0.00372486, 0.01453745},      /*  719.000000 Hz section two*/
+													
+													{ -0.12297030, 0.99863545, 0.06928008, -0.01264598, 0.06928008},      /*  769.000000 Hz section one*/
+													{ -0.00087460, 0.01442792, 0.01442792, -0.00087460, 0.01442792},      /*  769.000000 Hz section two*/
+													
+													{ -0.07592700, 0.99863543, 0.06932072, -0.00939792, 0.06932072},      /*  781.000000 Hz section one*/
+													{ -0.00019488, 0.01441946, 0.01441946, -0.00019488, 0.01441946},      /*  781.000000 Hz section two*/
+													
+													{ -0.04061543, 0.99863542, 0.06933424, -0.00695414, 0.06933424},      /*  790.000000 Hz section one*/
+													{  0.00031456, 0.01441665, 0.01441665,  0.00031456, 0.01441665},      /*  790.000000 Hz section two*/
+													
+													{  0.04061543, 0.99863542, 0.06933424,  0.00695414, 0.06933424},      /*  810.000000 Hz section one*/
+													{ -0.00031456, 0.01441665, 0.01441665, -0.00031456, 0.01441665},      /*  810.000000 Hz section two*/
+													
+													{  0.46153424, 0.99863518, 0.06878084,  0.03591457, 0.06878084},      /*  919.000000 Hz section one*/
+													{  0.00593872, 0.01472401, 0.01472401,  0.00593872, 0.01472401},      /*  919.000000 Hz section two*/
+													
+													{  0.69432345, 0.99863505, 0.06958878,  0.05237854, 0.06958878},      /*  981.000000 Hz section one*/
+													{  0.00970934, 0.01521424, 0.01521424,  0.00970934, 0.01521424},      /*  981.000000 Hz section two*/
+													
+													{  0.75286507, 0.99863502, 0.06996664,  0.05670814, 0.06996664},      /*  997.000000 Hz section one*/
+													{  0.01072964, 0.01538563, 0.01538563,  0.01072964, 0.01538563}};     /*  997.000000 Hz section two*/
+
+													//			a1					a2					b0					b1						b2
+
+const float coeff10[][5] =            // coef , BR = 1.0
+													{{-0.31930649, 0.99727199, 0.04478304, -0.01954121, 0.04478304},      /*  719.000000 Hz section one*/
+{-0.39074420, 2.00000000, 2.00000000, -0.39074420, 2.00000000},      /*  719.000000 Hz section two*/
+{-0.12433508, 0.99727162, 0.04438682, -0.01079149, 0.04438682},      /*  769.000000 Hz section one*/
+{0.00096035, 2.00000000, 2.00000000, 0.00096035, 2.00000000},      /*  769.000000 Hz section two*/
+{-0.07729261, 0.99727153, 0.04460167, -0.00875665, 0.04460167},      /*  781.000000 Hz section one*/
+{0.09511119, 2.00000000, 2.00000000, 0.09511119, 2.00000000},      /*  781.000000 Hz section two*/
+{-0.04198117, 0.99727146, 0.04449388, -0.00717071, 0.04449388},      /*  790.000000 Hz section one*/
+{0.16569270, 2.00000000, 2.00000000, 0.16569270, 2.00000000},      /*  790.000000 Hz section two*/
+{0.04198117, 0.99727146, 0.04449388, 0.00717071, 0.04449388},      /*  810.000000 Hz section one*/
+{-0.16569270, 2.00000000, 2.00000000, -0.16569270, 2.00000000},      /*  810.000000 Hz section two*/
+{0.46021330, 0.99727050, 0.04501638, 0.02613184, 0.04501638},      /*  919.000000 Hz section one*/
+{0.68612070, 2.00000000, 2.00000000, 0.68612070, 2.00000000},      /*  919.000000 Hz section two*/
+{0.69305438, 0.99727000, 0.04552650, 0.03680319, 0.04552650},      /*  981.000000 Hz section one*/
+{1.15911404, 2.00000000, 2.00000000, 1.15911404, 2.00000000},      /*  981.000000 Hz section two*/
+{0.75161248, 0.99726987, 0.04562445, 0.03948303, 0.04562445},      /*  997.000000 Hz section one*/
+{1.27866661, 2.00000000, 2.00000000, 1.27866661, 2.00000000}};     /*  997.000000 Hz section two*/
+
+													//			a1					a2					b0					b1						b2
+
+const float coeff20[][5] =            // coef , BR = 2.0
+													{{-0.32245874, 0.99454247, 0.07005433, -0.03876378, 0.07005433},      /*  719.000000 Hz section one*/
+													{ -0.00105375, 0.01440968, 0.01440968, -0.00105375, 0.01440968},      /*  719.000000 Hz section two*/
+													
+													{ -0.12723801, 0.99454098, 0.06987503, -0.02536577, 0.06987503},      /*  769.000000 Hz section one*/
+													{  0.00176816, 0.01444666, 0.01444666,  0.00176816, 0.01444666},      /*  769.000000 Hz section two*/
+													
+													{ -0.08013143, 0.99454063, 0.06978362, -0.02210405, 0.06978362},      /*  781.000000 Hz section one*/
+													{  0.00244780, 0.01446558, 0.01446558,  0.00244780, 0.01446558},      /*  781.000000 Hz section two*/
+													
+													{ -0.04477087, 0.99454036, 0.07012349, -0.01977037, 0.07012349},      /*  790.000000 Hz section one*/
+													{  0.00294060, 0.01439547, 0.01439547,  0.00294060, 0.01439547},      /*  790.000000 Hz section two*/
+													
+													{  0.04477087, 0.99454036, 0.07012349,  0.01977037, 0.07012349},      /*  810.000000 Hz section one*/
+													{ -0.00294060, 0.01439547, 0.01439547, -0.00294060, 0.01439547},      /*  810.000000 Hz section two*/
+													
+													{  0.45821590, 0.99453650, 0.06978484,  0.04846754, 0.06978484},      /*  919.000000 Hz section one*/
+													{  0.00320178, 0.01446533, 0.01446533,  0.00320178, 0.01446533},      /*  919.000000 Hz section two*/
+													
+													{  0.69148691, 0.99453451, 0.07120475,  0.06524280, 0.07120475},      /*  981.000000 Hz section one*/
+													{  0.00681522, 0.01481168, 0.01481168,  0.00681522, 0.01481168},      /*  981.000000 Hz section two*/
+													
+													{  0.75016003, 0.99453396, 0.07240086,  0.07033202, 0.07240086},      /*  997.000000 Hz section one*/
+													{  0.00776908, 0.01491828, 0.01491828,  0.00776908, 0.01491828}};     /*  997.000000 Hz section two*/
+													
+													//			a1					a2					b0					b1						b2
+float coef11[5];		
+float coef12[5];		
+
+float coef21[5];		
+float coef22[5];		
+
+const float coef_low_05[] = {-0.99862650, 0.00000000, 0.00068675, 0.00068675, 0.00000000};      //  0.700000 Hz , BR = 0.5
+const float coef_low_10[] = {-0.99725488, 0.00000000, 0.00137256, 0.00137256, 0.00000000};      //  1.400000 Hz , BR = 1.0
+const float coef_low_20[] = {-0.99451727, 0.00000000, 0.00274136, 0.00274136, 0.00000000};      //  2.800000 Hz , BR = 2.0
+
+float coefl[] = {-0.99725488, 0.00000000, 0.00137256, 0.00137256, 0.00000000};
+
+float ratio = 0.01;
+float ratio_f1;
+float ratio_f2;
+
+extern uint16_t samplenum;
+
+const uint16_t pdat0[]		= {500,500,500,500};
+//const uint16_t pdat[]			= {500,500,500,500,500,500,500,500,500,500,500,500,500,500};	// лампа
+//const uint16_t pdat1[]		= {999,1,1000,0,1000,0,1000,0,1000,0,1000,0,1000,0};
+
+const uint16_t pdat[]			= {500,500,500,500,500,500,500,500,500,500};	// лампа
+const uint16_t pdat1[]		= {1000,0,1000,0,1000,0,1000};
+
+uint16_t bb, f1 = 981, f2 = 997, BR = 10;
+uint16_t name = NAME;
+
+HAL_StatusTypeDef Status;
+extern rxData_t rxDATA;
+extern txData_t txDATA;
+extern UART_HandleTypeDef huart2;
+// режим моргания 
+void blink(char mode)
+{
+	
+	switch(mode)
+	{
+		case START:
+			HAL_GPIO_WritePin(Interrupt_OUT_GPIO_Port,Interrupt_OUT_Pin, GPIO_PIN_SET);
+			HAL_TIM_PWM_Stop_DMA(&htim2,TIM_CHANNEL_1);
+			HAL_TIM_PWM_Start_DMA(&htim2,TIM_CHANNEL_1, (uint32_t *)pdat0, sizeof(pdat0)/sizeof(pdat0[0]));
+			//DMA1_Channel5->CCR &= ~DMA_IT_HT;
+		break;
+		case ALARM:
+			HAL_GPIO_WritePin(Interrupt_OUT_GPIO_Port,Interrupt_OUT_Pin, GPIO_PIN_SET);
+			HAL_TIM_PWM_Stop_DMA(&htim2,TIM_CHANNEL_1);
+			HAL_TIM_PWM_Start_DMA(&htim2,TIM_CHANNEL_1, (uint32_t *)pdat, sizeof(pdat)/sizeof(pdat[0]));
+			//DMA1_Channel5->CCR &= ~DMA_IT_HT;
+		break;
+		case PERSONAL:
+			HAL_GPIO_WritePin(Interrupt_OUT_GPIO_Port,Interrupt_OUT_Pin, GPIO_PIN_SET);
+			HAL_TIM_PWM_Stop_DMA(&htim2,TIM_CHANNEL_1);
+			HAL_TIM_PWM_Start_DMA(&htim2,TIM_CHANNEL_1, (uint32_t *)pdat1, sizeof(pdat1)/sizeof(pdat1[0]));
+			//DMA1_Channel5->CCR &= ~DMA_IT_HT;
+		break;
+		case OK_SET:
+			HAL_GPIO_WritePin(Interrupt_OUT_GPIO_Port,Interrupt_OUT_Pin, GPIO_PIN_SET);
+			HAL_TIM_PWM_Stop_DMA(&htim2,TIM_CHANNEL_1);
+			HAL_TIM_PWM_Start_DMA(&htim2,TIM_CHANNEL_1, (uint32_t *)pdat0, sizeof(pdat0)/sizeof(pdat0[0]));
+		break;
+		case ERROR_SET:
+			HAL_GPIO_WritePin(Interrupt_OUT_GPIO_Port,Interrupt_OUT_Pin, GPIO_PIN_SET);
+			HAL_TIM_PWM_Stop_DMA(&htim2,TIM_CHANNEL_1);
+			HAL_TIM_PWM_Start_DMA(&htim2,TIM_CHANNEL_1, (uint32_t *)pdat0, 2*sizeof(pdat0[0]));	
+		break;
+		case EXT_BLINK:
+			HAL_GPIO_WritePin(Interrupt_OUT_GPIO_Port,Interrupt_OUT_Pin, GPIO_PIN_SET);
+			HAL_TIM_PWM_Stop_DMA(&htim2,TIM_CHANNEL_1);
+			HAL_TIM_PWM_Start_DMA(&htim2,TIM_CHANNEL_1, (uint32_t *)pdat0, sizeof(pdat0[0]));	
+		break;
+		
+			
+	}
+
+}
+
+void SetCoefficiens(uint16_t freq1, uint16_t freq2, uint16_t boudrate)
+{
+	char ind_f1 = 0;
+	char ind_f2 = 0;
+
+	char z = 0;
+	char len = 0;
+	_Bool f1_set = 0;
+	_Bool f2_set = 0;
+	_Bool br_set = 0;
+	
+	len = (sizeof(freq)/2);
+	
+	for(z = 0; z<len;z++)
+	{
+		if(freq[z] == freq1)
+			{	
+				ind_f1 = z*2;
+				f1_set = 1;
+			}
+		if(freq[z] == freq2)
+			{
+				ind_f2 = z*2;
+				f2_set = 1;
+			}
+	}
+	
+	if(boudrate == 5)
+	{
+		coefl[0] = coef_low_05[0];
+		coefl[1] = coef_low_05[1];
+		coefl[2] = coef_low_05[2];
+		coefl[3] = coef_low_05[3];
+		coefl[4] = coef_low_05[4];
+		samplenum = 6400;
+		br_set = 1;
+	}
+	else if(boudrate == 10)
+	{
+		coefl[0] = coef_low_10[0];
+		coefl[1] = coef_low_10[1];
+		coefl[2] = coef_low_10[2];
+		coefl[3] = coef_low_10[3];
+		coefl[4] = coef_low_10[4];
+		br_set = 1;
+		samplenum = 3200;
+	}
+	else if(boudrate == 20)
+	{
+		coefl[0] = coef_low_20[0];
+		coefl[1] = coef_low_20[1];
+		coefl[2] = coef_low_20[2];
+		coefl[3] = coef_low_20[3];
+		coefl[4] = coef_low_20[4];
+		samplenum = 1600;
+		br_set = 1;
+	}
+	else
+		br_set = 0;
+	
+	
+	if((!f1_set)||(!f2_set)||(!br_set))
+		blink(ERROR_SET);
+	else
+		blink(OK_SET);
+	
+	if(boudrate == 5)
+	{
+		for(z = 0; z<5;z++)
+	{
+		coef11[z] = coeff5[ind_f1][z];
+		coef12[z] = coeff5[ind_f1+1][z];
+		coef21[z] = coeff5[ind_f2][z];
+		coef22[z] = coeff5[ind_f2+1][z];}
+	}
+	else if(boudrate == 10)
+	{
+		for(z = 0; z<5;z++)
+	{
+		coef11[z] = coeff10[ind_f1][z];
+		coef12[z] = coeff10[ind_f1+1][z];
+		coef21[z] = coeff10[ind_f2][z];
+		coef22[z] = coeff10[ind_f2+1][z];}
+	}
+	else if(boudrate == 20)
+	{
+		for(z = 0; z<5;z++)
+	{
+		coef11[z] = coeff20[ind_f1][z];
+		coef12[z] = coeff20[ind_f1+1][z];
+		coef21[z] = coeff20[ind_f2][z];
+		coef22[z] = coeff20[ind_f2+1][z];}
+	}
+	
+	
+	 ratio_f1 = (((float)ratio));
+	 ratio_f2 = (((float)ratio));
+	
+}
+
+float iir_test(float in, float *coef, float *his)
+{
+		float out;
+    float new_his;
+    float *hist1_ptr, *hist2_ptr;
+    float *coef_ptr;
+    float hist1, hist2;
+    coef_ptr = coef;
+
+    hist1_ptr = his;
+    hist2_ptr = hist1_ptr+1;
+	
+	
+		hist1 = *hist1_ptr;
+    hist2 = *hist2_ptr;
+	
+		out = in  - hist1 * (*coef_ptr++);
+		new_his = out - hist2 * (*coef_ptr++);
+	
+		out = new_his * (*coef_ptr++);
+		out = out + hist1 * (*coef_ptr++);
+    out = out + hist2 * (*coef_ptr++);
+/*
+    out = in * (*coef_ptr++);
+
+    hist1 = *hist1_ptr;
+    hist2 = *hist2_ptr;
+
+    out = out  - hist1 * (*coef_ptr++);
+    new_his = out - hist2 * (*coef_ptr++);
+
+    out = new_his + hist1 * (*coef_ptr++);
+    out = out + hist2 * (*coef_ptr++);
+*/
+    *hist2_ptr = *hist1_ptr;
+    *hist1_ptr = new_his;
+
+    return out;
+}
+
+
+unsigned int crc_calculating(unsigned char *puchMsg, unsigned short usDataLen)
+{
+        unsigned char uchCRCHi = 0xFF ;             /* Инициализация последнего байта CRC  */
+        unsigned char uchCRCLo = 0xFF ;             /* Инициализация первого байта CRC   */
+        unsigned uIndex ;                           /* will index into CRC lookup table  */
+        while (usDataLen--)                         /* pass through message buffer  */
+        {
+        uIndex = uchCRCHi ^ *puchMsg++ ;            /* Расчёт CRC */
+        uchCRCLo = uchCRCLo ^ auchCRCHi[uIndex] ;
+        uchCRCHi = auchCRCLo[uIndex] ;
+        }
+        return (uchCRCHi << 8 | uchCRCLo) ;
+}
+
+void SaveSetting(void)
+{
+	
+	HAL_FLASHEx_DATAEEPROM_Unlock();
+	HAL_FLASHEx_DATAEEPROM_Erase(0x08080000);
+	HAL_FLASHEx_DATAEEPROM_Erase(0x08080004);
+	Status = HAL_FLASHEx_DATAEEPROM_Program(TYPEPROGRAMDATA_HALFWORD, 0x08080000, f1);
+	Status = HAL_FLASHEx_DATAEEPROM_Program(TYPEPROGRAMDATA_HALFWORD, 0x08080002, f2);
+	Status = HAL_FLASHEx_DATAEEPROM_Program(TYPEPROGRAMDATA_HALFWORD, 0x08080004, name);
+	Status = HAL_FLASHEx_DATAEEPROM_Program(TYPEPROGRAMDATA_HALFWORD, 0x08080006, BR);
+	
+	HAL_FLASHEx_DATAEEPROM_Lock();
+	
+}
+
+void LoadSetting(void)
+{
+	f1 = 		*(__IO uint16_t*)0x08080000;
+	f2 = 		*(__IO uint16_t*)0x08080002;
+	name = 	*(__IO uint16_t*)0x08080004;
+	BR = 		*(__IO uint16_t*)0x08080006;
+	
+	
+}
+
+
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+	{
+		
+		switch(GPIO_Pin)
+		{
+			case External_IN_Pin:							// ?????? ??????
+				blink(EXT_BLINK);
+				break;
+			
+		}
+	}
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+	{
+		HAL_TIM_Base_Stop_IT(&htim21);
+		
+		if(rxDATA.f1 != 0)
+			f1 = rxDATA.f1;
+		
+		if(rxDATA.f2 != 0)
+			f2 = rxDATA.f2;
+		
+		if(rxDATA.br != 0)
+			BR = rxDATA.br;
+		
+		if(rxDATA.name != 0)
+			name = rxDATA.name;
+		
+		if(rxDATA.res == 1)
+			SCB->AIRCR = 0x05FA0004;
+			
+		
+		SetCoefficiens(f1,f2,BR);
+		SaveSetting();
+		
+		HAL_UART_Receive_IT(&huart2, (uint8_t*)&rxDATA,sizeof(rxDATA));
+		HAL_TIM_Base_Start_IT(&htim21);
+	}
