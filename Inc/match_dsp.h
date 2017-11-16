@@ -82,6 +82,8 @@ void DefaultSettings(void);
 void SaveSetting(SettingParametrs_t *Settings);
 void LoadSetting(SettingParametrs_t *Settings);
 
+uint16_t dataBuff(uint8_t data);
+
 
 
 

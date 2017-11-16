@@ -55,6 +55,9 @@
 
 float history11[] = {0,0},history12[] = {0,0},history21[] = {0,0},history22[] = {0,0},historyl[] = {0,0};
 
+#define DATALEN	16
+uint8_t databuff[DATALEN];
+
 
 													//			a1					a2					b0					b1						b2
 
@@ -533,6 +536,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		UART2_RecvType = UART2_RECV_CMD;
 		HAL_UART_Receive_IT(&huart2, (uint8_t *)&CMD,sizeof(CMD));
 	}
+		
+	
 		/*HAL_TIM_Base_Stop_IT(&htim21);
 		
 		if(rxDATA.f1 != 0)
@@ -557,3 +562,31 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		HAL_UART_Receive_IT(&huart2, (uint8_t*)&rxDATA,sizeof(rxDATA));
 		HAL_TIM_Base_Start_IT(&htim21);*/
 	}
+
+	// сейчас передача идет старшим вперед databuff[0] - старший
+	// должна быть младшим вперед databuff[0] - младший
+	uint16_t dataBuff(uint8_t data)
+	{
+		uint16_t databin;
+		
+		// кольцевой сдвиг
+		for(uint8_t i = DATALEN-1; i > 0; i--)
+		{
+			databuff[i] = databuff[i-1];
+		}
+		// запись нового бита
+		databuff[0] = data;
+		
+		// восстановление числа
+		
+		for(uint8_t i = 0; i < DATALEN; i++)
+		{
+			databin = databin<<1;
+			databin = databin|databuff[i];
+		}
+		
+		return databin;
+	}
+		
+		
+		

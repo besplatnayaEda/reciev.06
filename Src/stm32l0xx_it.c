@@ -60,7 +60,7 @@ uint16_t  tmptime = 0;
 
 static uint8_t /*bin = 0,*/ bin8[2], numbit = 0;//, str[8] = {0x00U,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0x0DU};	//modbus
 
-static uint16_t j, crc, bin;//,n = 0;
+static uint16_t j, crc, bin, binx;//,n = 0;
 extern uint16_t name;
 
 
@@ -384,7 +384,7 @@ void TIM21_IRQHandler(void)
 			if(retfl >= SETUP.ratio)
 			{	bit_1++; tst = 1;	}
 			if(retfl <= -SETUP.ratio)
-			{	bit_0++; tst = -1; }
+			{	bit_0++; tst = -1;  }
 			if((retfl < SETUP.ratio)&&(retfl > -SETUP.ratio))
 			{	bit_n++; tst = 0;	}
 			
@@ -397,6 +397,7 @@ void TIM21_IRQHandler(void)
 					{
 						bin = bin<<1;
 						bin = bin|1;
+						binx = dataBuff(1);
 						numb[numbit] = 1;
 						numbit++;
 						crc = crc_calculating((uint8_t *)&bin,1);
@@ -406,6 +407,7 @@ void TIM21_IRQHandler(void)
 					{
 						bin = bin<<1;
 						bin = bin|0;
+						binx = dataBuff(0);
 						numb[numbit] = 0;
 						numbit++;
 //						HAL_UART_Transmit_DMA(&huart2,(uint8_t *)&numbit,sizeof(numbit));
@@ -417,7 +419,8 @@ void TIM21_IRQHandler(void)
 							{
 								//bin = bin<<1;
 								//bin = bin|0;
-								numb[numbit] = 0;
+								//numb[numbit] = 0;
+								binx = dataBuff(0);
 								numbit++;
 //								HAL_UART_Transmit_DMA(&huart2,(uint8_t *)&numbit,sizeof(numbit));
 								

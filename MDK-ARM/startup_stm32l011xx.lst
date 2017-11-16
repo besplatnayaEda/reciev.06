@@ -402,11 +402,11 @@ ARM Macro Assembler    Page 7
               00000000 
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M0+ --apcs=inter
 work --depend=reciev.06\startup_stm32l011xx.d -oreciev.06\startup_stm32l011xx.o
- -IC:\Users\KAArtemev\Desktop\Прошивки\Приемник\reciev.06\MDK-ARM\RTE -IC:\Keil
-_v5\ARM\PACK\ARM\CMSIS\5.0.0\CMSIS\Include -IC:\Keil_v5\ARM\PACK\Keil\STM32L0xx
-_DFP\1.6.0\Device\Include --predefine="__MICROLIB SETA 1" --predefine="__UVISIO
-N_VERSION SETA 521" --predefine="_RTE_ SETA 1" --predefine="STM32L011xx SETA 1"
- --list=startup_stm32l011xx.lst startup_stm32l011xx.s
+ -IC:\Users\HomePC\Desktop\reciev\reciev.06\MDK-ARM\RTE\_reciev.06 -IC:\Keil_v5
+\ARM\PACK\ARM\CMSIS\5.1.0\CMSIS\Include -IC:\Keil_v5\ARM\PACK\Keil\STM32L0xx_DF
+P\1.6.0\Device\Include --predefine="__EVAL SETA 1" --predefine="__MICROLIB SETA
+ 1" --predefine="__UVISION_VERSION SETA 522" --predefine="_RTE_ SETA 1" --prede
+fine="STM32L011xx SETA 1" --list=startup_stm32l011xx.lst startup_stm32l011xx.s
 
 
 
@@ -846,4 +846,4 @@ Symbol: __main
       At line 167 in file startup_stm32l011xx.s
 Comment: __main used once
 2 symbols
-379 symbols in table
+380 symbols in table
